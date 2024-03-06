@@ -10,7 +10,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const password = signinForm.elements['password'].value;
   
       try {
-        const response = await fetch('http://localhost:3000/signin', {
+        const response = await fetch('https://api.webschool.pk', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'

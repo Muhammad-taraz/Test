@@ -7,7 +7,7 @@ const jwt = require('jsonwebtoken');
 
 const app = express();
 const PORT = 3000;
-const JWT_SECRET = 'your_jwt_secret';
+const JWT_SECRET = '9bhla7hyJVaj7cyhqCmbMGVjJZcSaSjqvsqJjrPbf1cb8e7e';
 
 connectDatabase().then(e => console.log("connected successfully")).catch((e)=>console.log(e))
   
@@ -15,11 +15,6 @@ connectDatabase().then(e => console.log("connected successfully")).catch((e)=>co
   await mongoose.connect("mongodb+srv://taraz:taraz12@todos.g2clqpo.mongodb.net/test?retryWrites=true&w=majority")}
 
 
-// mongoose.connect('mongodb://localhost:27017/auth_demo', { useNewUrlParser: true, useUnifiedTopology: true })
-//   .then(() => console.log('MongoDB connected'))
-//   .catch(err => console.error('MongoDB connection error:', err));
-
-// Define user schema and model
 const userSchema = new mongoose.Schema({
   email: { type: String, required: true, unique: true },
   password: { type: String, required: true },
@@ -35,11 +30,31 @@ app.use(cors());
 app.use('/auth', authRouter);
 
 
+authRouter.post('/signup', async (req, res) => {
+  const { email, password, name } = req.body;
+  try {
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return res.status(400).json({ error: 'Email already exists' });
+    }
+  
+    const hashedPassword = await bcrypt.hash(password, 10);
+    
+    const newUser = new User({ email, password: hashedPassword, name });
+    await newUser.save();
+    res.status(201).json({ message: 'User created successfully' });
+  } catch (error) {
+    console.error('Error creating user:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+
 authRouter.post('/signin', async (req, res) => {
   const { email, password } = req.body;
   const user = await User.findOne({ email });
   if (!user) {
-    return res.status(401).json({ error: 'User not found' });
+    return res.status(401).json({ error: 'Invalid email or password' });
   }
   const validPassword = await bcrypt.compare(password, user.password);
   if (!validPassword) {
@@ -55,17 +70,11 @@ authRouter.get('/protected', verifyToken, (req, res) => {
 });
 
 function verifyToken(req, res, next) {
-  const token = req.headers.authorization;
-  if (!token) {
-    return res.status(401).json({ error: 'Unauthorized' });
+  if (err) {
+    return res.status(401).json({ error: 'Invalid token' });
   }
-  jwt.verify(token, JWT_SECRET, (err, decoded) => {
-    if (err) {
-      return res.status(401).json({ error: 'Invalid token' });
-    }
-    req.userId = decoded.userId;
-    next();
-  });
+  req.userId = decoded.userId;
+  next();
 }
 
 app.listen(PORT, () => {
